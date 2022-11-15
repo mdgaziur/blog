@@ -1,0 +1,45 @@
+{% import "macros/post.html" as post_macros %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Noor's Blog{% endblock title %}</title>
+  <link rel="stylesheet" href="{{ get_url(path='main.css', trailing_slash=false) }}"
+</head>
+<body>
+  <a href="#main" class="skip-main">
+    Skip to content
+  </a>
+  <header class="page-header">
+    <a href="/">
+      <h1>
+        Noor's blog
+      </h1>
+    </a>
+    <nav>
+      <a href="https://mdgaziur.github.io">Portfolio</a>
+      <a href="https://github.com/mdgaziur">Github</a>
+    </nav>
+  </header>
+  {% block content %}
+    <main id="main">
+      <div>
+        {% for post in paginator.pages %}
+          {{ post_macros::post_info(post=post) }}
+        {% endfor %}
+      </div>
+
+      <nav class="paginator">
+        {% if paginator.previous %}
+          <a href="{{ paginator.previous }}">Previous</a>
+        {% endif %}
+        {% if paginator.next %}
+          <a href="{{ paginator.next }}">Next</a>
+        {% endif %}
+      </nav>
+    </main>
+  {% endblock content %}
+</body>
+</html>

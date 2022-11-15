@@ -1,0 +1,11 @@
+{% extends "index.html" %}
+
+{% block content %}
+<main style="display: flex; align-items: center; justify-content: center;">
+      <h1>Posts tagged with "{{ term.name }}"</h1>
+
+      {% for post in term.pages %}
+        {{ post_macros::post_info(post=post) }}
+      {% endfor %}
+</main>
+{% endblock content %}

@@ -1,0 +1,77 @@
+{% extends "index.html" %}
+
+{% block title %}
+{{ page.title }}
+{% endblock title %}
+
+{% block content %}
+<main>
+  <div class="article-container">
+    <header>
+      <h1>{{ page.title }}</h1>
+      <div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          style="fill: rgb(225, 225, 225)"
+        >
+          <path
+            d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
+          ></path>
+          <path d="M13 7h-2v6h6v-2h-4z"></path>
+        </svg>
+        <span>{{ page.reading_time }} minute reading time</span>
+      </div>
+      <div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          style="fill: rgb(225, 225, 225);"
+        >
+          <path
+            d="M21 20V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2zM9 18H7v-2h2v2zm0-4H7v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm2-5H5V7h14v2z"
+          ></path>
+        </svg>
+        <span>Posted at: {{ page.date | date(format="%F") }}</span>
+      </div>
+      <div>
+        {% if page.taxonomies.tags %}
+            {% for tag in page.taxonomies.tags %}
+                <a class="tag" href="{{ get_taxonomy_url(kind="tags", name=tag) | safe }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: rgb(225, 225, 225);">
+                    <path d="M13.707 3.293A.996.996 0 0 0 13 3H4a1 1 0 0 0-1 1v9c0 .266.105.52.293.707l8 8a.997.997 0 0 0 1.414 0l9-9a.999.999 0 0 0 0-1.414l-8-8zM12 19.586l-7-7V5h7.586l7 7L12 19.586z"></path>
+                    <circle cx="8.496" cy="8.495" r="1.505"></circle>
+                  </svg>
+                  {{ tag }}
+                </a>
+            {% endfor %}
+        {% endif %}
+      </div>
+    </header>
+    <article>{{ page.description }} {{ page.content | safe }}</article>
+    <div id="disqus_thread"></div>
+  </div>
+</main>
+<script>
+    /**
+    *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+    *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+    /*
+    var disqus_config = function () {
+    this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://mdgaziur-github-io-blog.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+{% endblock content %}
