@@ -1,8 +1,6 @@
 {% macro post_info(post) %}
 <div class="post-info">
-  <a href="{{ post.permalink | safe }}">
-    <h2 class="post-title">{{ post.title }}</h2>
-  </a>
+  <h2 class="post-title">{{ post.title }}</h2>
   <div style="display: flex; gap: 1em;">
     <span>Reading time: {{ post.reading_time }} minutes</span>
     <span>Posted at: {{ post.date | date(format="%F") }}</span>
@@ -23,5 +21,6 @@
   <p>
     {{ post.description }}
   </p>
+  <a style="text-decoration: underline" href="{{ post.permalink | safe }}">Read more</a>
 </div>
 {% endmacro page_info %}
