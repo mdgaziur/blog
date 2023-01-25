@@ -9,12 +9,49 @@ main {
     gap: 2em;
     max-width: 700px;
 
+    @media screen and (max-width: 850px) {
+      max-width: 100%;
+    }
+
     header {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+
+      h1 {
+        font-size: 5em;
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        background: rgb(44,89,164);
+        background: linear-gradient(243deg, rgba(44,89,164,1) 0%, rgba(38,58,126,1) 40%, rgba(245,16,31,1) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        @media screen and (max-width: 850px) {
+          font-size: 3em;
+        }
+      }
+
+      span {
+        font-size: 1.5em;
+        color: #707070;
+      }
+
+      .article-header-info-container {
+        background: rgb(40,40,40);
+        background: linear-gradient(32deg, rgba(40,40,40,1) 0%, rgba(74,74,74,1) 33%, rgba(84,84,84,1) 100%);
+        display: flex;
+        font-weight: 600;
+        flex-direction: column;
+        align-items: flex-start;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
       div {
         display: flex;
         align-items: center;
-        gap: .2em;
-        margin-top: .3em;
+        gap: .5em;
       }
     }
 
@@ -22,6 +59,10 @@ main {
       display: flex;
       flex-direction: column;
       gap: 2em;
+      font-size: 1.5em;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      letter-spacing: -.15px;
 
       a {
         color: rgb(91, 159, 242);
@@ -31,15 +72,94 @@ main {
         }
       }
 
+      table {
+        font-size: .7em;
+        overflow-x: scroll;
+        background: #202020;
+        box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        -webkit-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        -moz-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        border-collapse: collapse;
+        border-radius: .5em;
+        max-width: 100vw;
+
+        .katex-display {
+          margin: 0;
+          text-align: left;
+
+          * {
+            font-family: "KaTeX_Math", serif;
+            font-style: italic!important;
+          }
+
+          .katex {
+            text-align: left;
+          }
+        }
+
+        thead {
+          tr {
+            border-bottom: 1px solid #303030!important;
+          }
+        }
+
+        tr {
+          border-bottom: 1px solid #303030;
+
+          &:last-child {
+            border: none;
+          }
+        }
+
+        td, th {
+          padding: 1em;
+        }
+
+        @media screen and (max-width: 850px) {
+          display: block;
+
+          thead, tbody {
+            width: 100%;
+          }
+        }
+      }
+
       pre {
         padding: 1em;
         border-radius: .5em;
         overflow: auto;
+        box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        -webkit-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        -moz-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
+        border: 1px solid #303030;
+        font-size: .7em;
+        font-weight: 300;
 
         code {
           * {
             letter-spacing: 0;
             font-family: "JetBrains Mono", monospace;
+          }
+
+          table {
+            background: none;
+            padding: 0;
+            tbody {
+              tr {
+                padding: 0;
+                border: none;
+                td {
+                  padding: 0;
+                  &:nth-child(1) {
+                    color: #505050;
+                  }
+
+                  &:nth-child(2) {
+                    padding-left: 1em;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -47,12 +167,23 @@ main {
   }
 }
 
+.tags {
+  background: rgb(40,40,40);
+  background: linear-gradient(32deg, rgba(40,40,40,1) 0%, rgba(74,74,74,1) 33%, rgba(84,84,84,1) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  font-size: .5em;
+}
+
 .tag {
   display: flex;
   align-items: center;
   gap: .2em;
+  color: #cecece;
   padding: .3em;
-  background: #050505;
+  background: rgb(17, 17, 17);
+  background: linear-gradient(32deg, rgba(40,40,40,1) 0%, rgba(74,74,74,1) 33%, rgba(84,84,84,1) 100%);
   border-radius: 5px;
 }
 

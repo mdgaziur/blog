@@ -9,37 +9,13 @@
   <div class="article-container">
     <header>
       <h1>{{ page.title }}</h1>
-      <div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          style="fill: rgb(225, 225, 225)"
-        >
-          <path
-            d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
-          ></path>
-          <path d="M13 7h-2v6h6v-2h-4z"></path>
-        </svg>
+      <div class="article-header-info-container">
         <span>{{ page.reading_time }} minute reading time</span>
-      </div>
-      <div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          style="fill: rgb(225, 225, 225);"
-        >
-          <path
-            d="M21 20V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2zM9 18H7v-2h2v2zm0-4H7v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm2-5H5V7h14v2z"
-          ></path>
-        </svg>
         <span>Posted at: {{ page.date | date(format="%F") }}</span>
       </div>
       <div>
         {% if page.taxonomies.tags %}
+            <span class="tags">Tags: </span>
             {% for tag in page.taxonomies.tags %}
                 <a class="tag" href="{{ get_taxonomy_url(kind="tags", name=tag) | safe }}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: rgb(225, 225, 225);">
