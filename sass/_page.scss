@@ -76,6 +76,10 @@ main {
         line-height: 1.5em;
       }
 
+      p > img {
+        width: 100%;
+      }
+
       p > code {
         font-family: 'JetBrains Mono', sans-serif;
         background: #202020;
