@@ -146,7 +146,6 @@ fn test_func() {
     let r13: u64;
     let r14: u64;
     let r15: u64;
-    let xmm0: *const u64;
 
     unsafe {
         asm!("\
