@@ -1,5 +1,4 @@
 {% import "macros/post.html" as post_macros %}
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -25,7 +24,7 @@
   </header>
   {% block content %}
     <main id="main">
-      <div>
+      <div style="display: flex; flex-direction: column; gap: 1em;">
         {% for post in paginator.pages %}
           {{ post_macros::post_info(post=post) }}
         {% endfor %}

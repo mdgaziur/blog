@@ -72,6 +72,18 @@ main {
         }
       }
 
+      p {
+        line-height: 1.5em;
+      }
+
+      p > code {
+        font-family: 'JetBrains Mono', sans-serif;
+        background: #202020;
+        font-size: .8em;
+        padding: .2em;
+        border-radius: .1em;
+      }
+
       table {
         font-size: .7em;
         overflow-x: scroll;
@@ -132,7 +144,7 @@ main {
         -webkit-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
         -moz-box-shadow: 0px 0px 65px -1px rgba(23,23,23,0.75);
         border: 1px solid #303030;
-        font-size: .7em;
+        font-size: 1em;
         font-weight: 300;
 
         code {
