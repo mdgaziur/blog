@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+Taking the first step towards adding multitasking in my Kernel
+</title>
+  <link rel="stylesheet" href="https://mdgaziur.github.io/blog/main.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" integrity="sha384-vKruj+a13U8yHIkAyGgK1J3ArTLzrFGBbBc0tDp4ad/EyewESeXE/Iv67Aj8gKZ0" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js" integrity="sha384-PwRUT/YqbnEjkZO0zZxNqcxACrXe+j766U2amXcgMg5457rve2Y7I6ZJSm2A0mS4" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+          onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+  <a href="#main" class="skip-main">
+    Skip to content
+  </a>
+  <header class="page-header">
+    <h1>
+      <a href="https://mdgaziur.github.io">mdgaziur001</a>
+      <span>/</span>
+      <a href="https://mdgaziur.github.io/blog">blog</a>
+    </h1>
+  </header>
+  
+<main>
+  <div class="article-container">
+    <header>
+      <h1>Taking the first step towards adding multitasking in my Kernel</h1>
+      <div class="article-header-info-container">
+        <span>7 minute reading time</span>
+        <span>Posted at: 2023-01-25</span>
+      </div>
+      <div>
+        
+      </div>
+    </header>
+    <article>I&#x27;ve decided I want to add multitasking in my kernel after doing some preliminary work on VFS and RAMFS. How hard is it going to be? <p>Hi there! I've been working on my own <a href="https://github.com/mdgaziur/ferricoxide-os">operating system</a> since last year.
+It currently has paging, virtual file system, ramfs, and it can show stuff by writing pixels into a framebuffer. I've
+always been curious with how Linux, Windows and other operating systems do multitasking. More importantly, how do they switch
+context?</p>
+<h2 id="trying-to-learn-from-osdev-wiki">Trying to learn from OSDev Wiki</h2>
+<p>In the <a href="https://wiki.osdev.org">OSDev Wiki</a>, I found a pretty interesting tutorial on multitasking. It can be found
+<a href="https://wiki.osdev.org/Brendan%27s_Multi-tasking_Tutorial">here</a>. I tried to read through it and understand what's
+going on. But, alas! I couldn't understand even 50% of it. I was pretty confused about the implementation of <code>switch_to_task</code>.
+But tbh, it was not the OP's fault. The most interesting thing was <code>Thread Control Block</code>. If we look at the code:</p>
+<pre data-linenos data-lang="asm" style="background-color:#151515;color:#e8e8d3;" class="language-asm "><code class="language-asm" data-lang="asm"><table><tbody><tr><td>1</td><td><span style="color:#888888;">;C declaration:
+</span></td></tr><tr><td>2</td><td><span style="color:#888888;">;   void switch_to_task(thread_control_block *next_thread);
+</span></td></tr><tr><td>3</td><td><span style="color:#888888;">;
+</span></td></tr><tr><td>4</td><td><span style="color:#888888;">;WARNING: Caller is expected to disable IRQs before calling, and enable IRQs again after function returns
+</span></td></tr><tr><td>5</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>6</td><td><span style="color:#fad07a;">switch_to_task:
+</span></td></tr><tr><td>7</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>8</td><td><span style="color:#888888;">    ;Save previous task&#39;s state
+</span></td></tr><tr><td>9</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>10</td><td><span style="color:#888888;">    ;Notes:
+</span></td></tr><tr><td>11</td><td><span style="color:#888888;">    ;  For cdecl; EAX, ECX, and EDX are already saved by the caller and don&#39;t need to be saved again
+</span></td></tr><tr><td>12</td><td><span style="color:#888888;">    ;  EIP is already saved on the stack by the caller&#39;s &quot;CALL&quot; instruction
+</span></td></tr><tr><td>13</td><td><span style="color:#888888;">    ;  The task isn&#39;t able to change CR3 so it doesn&#39;t need to be saved
+</span></td></tr><tr><td>14</td><td><span style="color:#888888;">    ;  Segment registers are constants (while running kernel code) so they don&#39;t need to be saved
+</span></td></tr><tr><td>15</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>16</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">push </span><span style="color:#ffb964;">ebx
+</span></td></tr><tr><td>17</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">push </span><span style="color:#ffb964;">esi
+</span></td></tr><tr><td>18</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">push </span><span style="color:#ffb964;">edi
+</span></td></tr><tr><td>19</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">push </span><span style="color:#ffb964;">ebp
+</span></td></tr><tr><td>20</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>21</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">edi</span><span>,[</span><span style="color:#fad07a;">current_task_TCB</span><span>]</span><span style="color:#888888;">    ;edi = address of the previous task&#39;s &quot;thread control block&quot;
+</span></td></tr><tr><td>22</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span>[</span><span style="color:#ffb964;">edi</span><span>+</span><span style="color:#fad07a;">TCB.</span><span style="color:#ffb964;">ESP</span><span>],</span><span style="color:#ffb964;">esp</span><span style="color:#888888;">         ;Save ESP for previous task&#39;s kernel stack in the thread&#39;s TCB
+</span></td></tr><tr><td>23</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>24</td><td><span style="color:#888888;">    ;Load next task&#39;s state
+</span></td></tr><tr><td>25</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>26</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">esi</span><span>,[</span><span style="color:#ffb964;">esp</span><span>+</span><span style="color:#fad07a;">(</span><span>4+1</span><span style="color:#fad07a;">)</span><span>*4]</span><span style="color:#888888;">         ;esi = address of the next task&#39;s &quot;thread control block&quot; (parameter passed on stack)
+</span></td></tr><tr><td>27</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span>[</span><span style="color:#fad07a;">current_task_TCB</span><span>],</span><span style="color:#ffb964;">esi</span><span style="color:#888888;">    ;Current task&#39;s TCB is the next task TCB
+</span></td></tr><tr><td>28</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>29</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">esp</span><span>,[</span><span style="color:#ffb964;">esi</span><span>+</span><span style="color:#fad07a;">TCB.</span><span style="color:#ffb964;">ESP</span><span>]</span><span style="color:#888888;">         ;Load ESP for next task&#39;s kernel stack from the thread&#39;s TCB
+</span></td></tr><tr><td>30</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">eax</span><span>,[</span><span style="color:#ffb964;">esi</span><span>+</span><span style="color:#fad07a;">TCB.</span><span style="color:#ffb964;">CR3</span><span>]</span><span style="color:#888888;">         ;eax = address of page directory for next task
+</span></td></tr><tr><td>31</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">ebx</span><span>,[</span><span style="color:#ffb964;">esi</span><span>+</span><span style="color:#fad07a;">TCB.ESP0</span><span>]</span><span style="color:#888888;">        ;ebx = address for the top of the next task&#39;s kernel stack
+</span></td></tr><tr><td>32</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span>[</span><span style="color:#fad07a;">TSS.ESP0</span><span>],</span><span style="color:#ffb964;">ebx</span><span style="color:#888888;">            ;Adjust the ESP0 field in the TSS (used by CPU for for CPL=3 -&gt; CPL=0 privilege level changes)
+</span></td></tr><tr><td>33</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">ecx</span><span>,</span><span style="color:#ffb964;">cr3</span><span style="color:#888888;">                   ;ecx = previous task&#39;s virtual address space
+</span></td></tr><tr><td>34</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>35</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">cmp </span><span style="color:#ffb964;">eax</span><span>,</span><span style="color:#ffb964;">ecx</span><span style="color:#888888;">                   ;Does the virtual address space need to being changed?
+</span></td></tr><tr><td>36</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">je </span><span style="color:#fad07a;">.doneVAS</span><span style="color:#888888;">                   ; no, virtual address space is the same, so don&#39;t reload it and cause TLB flushes
+</span></td></tr><tr><td>37</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">mov </span><span style="color:#ffb964;">cr3</span><span>,</span><span style="color:#ffb964;">eax</span><span style="color:#888888;">                   ; yes, load the next task&#39;s virtual address space
+</span></td></tr><tr><td>38</td><td><span style="color:#fad07a;">.doneVAS:
+</span></td></tr><tr><td>39</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>40</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">pop </span><span style="color:#ffb964;">ebp
+</span></td></tr><tr><td>41</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">pop </span><span style="color:#ffb964;">edi
+</span></td></tr><tr><td>42</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">pop </span><span style="color:#ffb964;">esi
+</span></td></tr><tr><td>43</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">pop </span><span style="color:#ffb964;">ebx
+</span></td></tr><tr><td>44</td><td><span style="color:#fad07a;"> 
+</span></td></tr><tr><td>45</td><td><span style="color:#fad07a;">    </span><span style="color:#8fbfdc;">ret</span><span style="color:#888888;">                           ;Load next task&#39;s EIP from its kernel stack
+</span></td></tr></tbody></table></code></pre>
+<p>It seems to store some registers, and then loads the TCB of previous task into <code>edi</code>. And then loads
+the TCB of next task to esp. And then does some <code>mov</code>'s I don't really understand. There are some stuff like
+<code>kernel stack</code> and <code>virtual address space</code> that aren't really present in the kernel right now. So, I decided to change
+my plan.</p>
+<h2 id="plan-b">Plan B</h2>
+<p>I started to go through random repositories of fantastic kernels written by fantastic people to try to grasp how
+they did multitasking. I looked through source code of <a href="https://lemonos.org">Lemon OS</a>, <a href="https://aero.andypy.dev/aero_kernel/index.html">Aero OS</a>
+and many more. One thing they had in common is that the scheduler would do some stuff and then pass the context information
+to an assembly function. That thing does the actual work of moving and updating all the necessary registers and doing the
+jump.</p>
+<p>But, what about <code>rip</code>? This was a pretty stupid thing done by me tbh. I was trying to find how to update <code>rip</code> directly.
+Like, <code>mov rip, rax</code>. I didn't realize that it was impossible. It was possible to read value by using <code>lea</code>.
+So, I wasted couple weeks thinking about it. Yeah. But then, today I just found I can do it just by pushing a value
+onto stack and running <code>ret</code>. Damn. This easy?</p>
+<p>So now I started to implement a basic function that'll take a struct <code>Context</code> and use the values from there
+to update the registers.</p>
+<pre data-linenos data-lang="rs" style="background-color:#151515;color:#e8e8d3;" class="language-rs "><code class="language-rs" data-lang="rs"><table><tbody><tr><td>1</td><td><span>#[</span><span style="color:#ffb964;">derive</span><span>(Default, Debug, Copy, Clone)]
+</span></td></tr><tr><td>2</td><td><span>#[</span><span style="color:#ffb964;">repr</span><span>(packed)]
+</span></td></tr><tr><td>3</td><td><span style="color:#8fbfdc;">pub struct </span><span style="color:#ffb964;">Context </span><span>{
+</span></td></tr><tr><td>4</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">rbx</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>5</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">rbp</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>6</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">r12</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>7</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">r13</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>8</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">r14</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>9</td><td><span>    </span><span style="color:#8fbfdc;">pub </span><span style="color:#ffb964;">r15</span><span>: </span><span style="color:#8fbfdc;">u64</span><span>,
+</span></td></tr><tr><td>10</td><td><span>}
+</span></td></tr></tbody></table></code></pre>
+<p>Following is the code of the function:</p>
+<pre data-linenos data-lang="rs" style="background-color:#151515;color:#e8e8d3;" class="language-rs "><code class="language-rs" data-lang="rs"><table><tbody><tr><td>1</td><td><span>#[</span><span style="color:#ffb964;">naked</span><span>]
+</span></td></tr><tr><td>2</td><td><span style="color:#8fbfdc;">pub unsafe </span><span>extern </span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">C</span><span style="color:#556633;">&quot; </span><span style="color:#8fbfdc;">fn </span><span style="color:#fad07a;">switch_context</span><span>(
+</span></td></tr><tr><td>3</td><td><span>    </span><span style="color:#ffb964;">new_context</span><span>: &amp;Context,
+</span></td></tr><tr><td>4</td><td><span>    </span><span style="color:#ffb964;">new_cr3</span><span>: </span><span style="color:#8fbfdc;">usize</span><span>,
+</span></td></tr><tr><td>5</td><td><span>    </span><span style="color:#ffb964;">rip</span><span>: </span><span style="color:#8fbfdc;">usize</span><span>,
+</span></td></tr><tr><td>6</td><td><span>) {
+</span></td></tr><tr><td>7</td><td><span>    asm!(
+</span></td></tr><tr><td>8</td><td><span>        </span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">\
+</span></td></tr><tr><td>9</td><td><span style="color:#99ad6a;">        mov rax, rsp
+</span></td></tr><tr><td>10</td><td><span style="color:#99ad6a;">        mov rsp, rdi
+</span></td></tr><tr><td>11</td><td><span style="color:#99ad6a;">        pop rbx
+</span></td></tr><tr><td>12</td><td><span style="color:#99ad6a;">        pop rbp
+</span></td></tr><tr><td>13</td><td><span style="color:#99ad6a;">        pop r12
+</span></td></tr><tr><td>14</td><td><span style="color:#99ad6a;">        pop r13
+</span></td></tr><tr><td>15</td><td><span style="color:#99ad6a;">        pop r14
+</span></td></tr><tr><td>16</td><td><span style="color:#99ad6a;">        pop r15
+</span></td></tr><tr><td>17</td><td><span style="color:#99ad6a;">        mov rsp, rax
+</span></td></tr><tr><td>18</td><td><span style="color:#99ad6a;">        mov cr3, rsi
+</span></td></tr><tr><td>19</td><td><span style="color:#99ad6a;">        push rdx
+</span></td></tr><tr><td>20</td><td><span style="color:#99ad6a;">        ret
+</span></td></tr><tr><td>21</td><td><span style="color:#99ad6a;">    </span><span style="color:#556633;">&quot;</span><span>,
+</span></td></tr><tr><td>22</td><td><span>        options(noreturn)
+</span></td></tr><tr><td>23</td><td><span>    )
+</span></td></tr><tr><td>24</td><td><span>}
+</span></td></tr></tbody></table></code></pre>
+<p>This is a naked function(doesn't have the prologue and epilogue like normal functions do) that takes the context,
+cr3(for setting the address space of switched task) and the value for <code>rip</code>. The code basically backs up the stack first,
+then sets the pointer to <code>Context</code> as stack pointer. Then we pop the values from it with the same order we declared
+the register values in <code>Context</code>. The ordering is very important here. Otherwise, register will get wrong value. Then
+it restores original stack, updates cr3. After that, it basically pushes <code>rdx</code>. Why <code>rdx</code>? Well, the &quot;C&quot; calling convention
+requires that function arguments are put in following order: <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, etc. That means, <code>new_context</code>
+is stored in <code>rdi</code>, <code>new_cr3</code> is stored <code>rsi</code> and <code>rip</code> is stored in <code>rdx</code>. After that, we run the <code>ret</code> instruction.</p>
+<h2 id="testing-the-thing">Testing the thing</h2>
+<p>Let's make a dummy function and call it through this. First, the dummy function:</p>
+<pre data-linenos data-lang="rs" style="background-color:#151515;color:#e8e8d3;" class="language-rs "><code class="language-rs" data-lang="rs"><table><tbody><tr><td>1</td><td><span style="color:#8fbfdc;">fn </span><span style="color:#fad07a;">test_func</span><span>() {
+</span></td></tr><tr><td>2</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> rbx: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>3</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> rbp: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>4</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> r12: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>5</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> r13: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>6</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> r14: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>7</td><td><span>    </span><span style="color:#8fbfdc;">let</span><span> r15: </span><span style="color:#8fbfdc;">u64</span><span>;
+</span></td></tr><tr><td>8</td><td><span>
+</span></td></tr><tr><td>9</td><td><span>    </span><span style="color:#8fbfdc;">unsafe </span><span>{
+</span></td></tr><tr><td>10</td><td><span>        asm!(</span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">\
+</span></td></tr><tr><td>11</td><td><span style="color:#99ad6a;">            mov {}, rbx\n\
+</span></td></tr><tr><td>12</td><td><span style="color:#99ad6a;">            mov {}, rbp\n\
+</span></td></tr><tr><td>13</td><td><span style="color:#99ad6a;">            mov {}, r12\n\
+</span></td></tr><tr><td>14</td><td><span style="color:#99ad6a;">            mov {}, r13\n\
+</span></td></tr><tr><td>15</td><td><span style="color:#99ad6a;">            mov {}, r14\n\
+</span></td></tr><tr><td>16</td><td><span style="color:#99ad6a;">            mov {}, r15\n\
+</span></td></tr><tr><td>17</td><td><span style="color:#99ad6a;">        </span><span style="color:#556633;">&quot;</span><span>, out(reg) rbx,
+</span></td></tr><tr><td>18</td><td><span>            out(reg) rbp,
+</span></td></tr><tr><td>19</td><td><span>            out(reg) r12,
+</span></td></tr><tr><td>20</td><td><span>            out(reg) r13,
+</span></td></tr><tr><td>21</td><td><span>            out(reg) r14,
+</span></td></tr><tr><td>22</td><td><span>            out(reg) r15);
+</span></td></tr><tr><td>23</td><td><span>    }
+</span></td></tr><tr><td>24</td><td><span>
+</span></td></tr><tr><td>25</td><td><span>    info!(</span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">Hello from test func!</span><span style="color:#556633;">&quot;</span><span>);
+</span></td></tr><tr><td>26</td><td><span>    info!(</span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">Registers: </span><span style="color:#556633;">&quot;</span><span>);
+</span></td></tr><tr><td>27</td><td><span>    info!(</span><span style="color:#556633;">&quot;</span><span style="color:#99ad6a;">rbx = 0x{:x}, rbp = 0x{:x}, r12 = 0x{:x}, r13 = 0x{:x}, r14 = 0x{:x}, r15 = 0x{:x}</span><span style="color:#556633;">&quot;</span><span>,
+</span></td></tr><tr><td>28</td><td><span>        rbx, rbp, r12, r13, r14, r15);
+</span></td></tr><tr><td>29</td><td><span>}
+</span></td></tr></tbody></table></code></pre>
+<p>The function basically reads all the registers updated by the context switch function and displays the values.
+Let's call <code>switch_context</code> with some values:</p>
+<pre data-linenos data-lang="rs" style="background-color:#151515;color:#e8e8d3;" class="language-rs "><code class="language-rs" data-lang="rs"><table><tbody><tr><td>1</td><td><span style="color:#8fbfdc;">unsafe </span><span>{
+</span></td></tr><tr><td>2</td><td><span>    switch_context(
+</span></td></tr><tr><td>3</td><td><span>        &amp;Context {
+</span></td></tr><tr><td>4</td><td><span>            rbp: </span><span style="color:#cf6a4c;">0xcafe</span><span>,
+</span></td></tr><tr><td>5</td><td><span>            rbx: </span><span style="color:#cf6a4c;">0xbabe</span><span>,
+</span></td></tr><tr><td>6</td><td><span>            r12: </span><span style="color:#cf6a4c;">0xdeadbeef</span><span>,
+</span></td></tr><tr><td>7</td><td><span>            r13: </span><span style="color:#cf6a4c;">0xfeedbed</span><span>,
+</span></td></tr><tr><td>8</td><td><span>            r14: </span><span style="color:#cf6a4c;">0xfacefeed</span><span>,
+</span></td></tr><tr><td>9</td><td><span>            r15: </span><span style="color:#cf6a4c;">0xfacebace</span><span>,
+</span></td></tr><tr><td>10</td><td><span>        },
+</span></td></tr><tr><td>11</td><td><span>        Cr3::read().</span><span style="color:#cf6a4c;">0.</span><span>start_address().as_u64() as </span><span style="color:#8fbfdc;">usize</span><span>,
+</span></td></tr><tr><td>12</td><td><span>        test_func as </span><span style="color:#8fbfdc;">*const fn</span><span>() as </span><span style="color:#8fbfdc;">usize</span><span>,
+</span></td></tr><tr><td>13</td><td><span>    );
+</span></td></tr><tr><td>14</td><td><span>}
+</span></td></tr></tbody></table></code></pre>
+<p>We are basically setting some interesting values to the registers, setting cr3 to what we are using currently as we can't
+set up new page tables now, and then passing the pointer to <code>test_func</code>. The <code>switch_context</code> function doesn't crash and switches
+task successfully. Here's the output:</p>
+<p><img src="https://mdgaziur.github.io/blog/first-step-towards-context-switching/first_step_towards_context_switching_img1.png" alt="first_step_towards_context_switching_img1.png" /></p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I've learned some stuff about switching context and tried to implement them. Tbh, current one isn't really efficient.
+It doesn't really store the context of previous task somewhere, and it's currently a fancy unsafe function caller. 
+I've plans to make it so that it actually works properly in real multitasking scenario. I'm going to have to write a 
+scheduler and make it schedule tasks. It can be done through <code>PIC</code>. But that's for next time. Currently, my college
+class is going to begin soon, and I'm going to have to study to get into a good university. Till then, stay safe and keep grinding.</p>
+</article>
+    <div id="disqus_thread"></div>
+  </div>
+</main>
+<script>
+    /**
+    *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+    *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+    /*
+    var disqus_config = function () {
+    this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    };
+    */
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://mdgaziur-github-io-blog.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</body>
+</html>
