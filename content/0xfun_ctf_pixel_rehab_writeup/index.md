@@ -4,7 +4,7 @@ description = "My writeup for the Pixel Rehab challenge of 0xFUN CTF 2026."
 date = "2026-02-22T02:06:24.017Z"
 
 [extra]
-social_media_banner = "banner.png"
+social_media_banner = "social_banner.png"
 +++
 
 Assalamu Alaikum, welcome to my writeup for the Pixel Rehab challenge of 0xFUN CTF 2026! This is an interesting challenge from the
