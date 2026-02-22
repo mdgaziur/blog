@@ -102,6 +102,13 @@ header {
   visibility: hidden;
 }
 
+blockquote {
+  border-left: 4px solid #737373;
+  padding-left: 1em;
+  color: #737373;
+  font-style: italic;
+}
+
 .post-content {
   h1, h2, h3, h4, h5, h6 {
     display: flex;
@@ -156,10 +163,17 @@ header {
   }
 }
 
+p > code {
+  background: #404040;
+  padding: 0.1em;
+  border-radius: 3px;
+}
+
 // code block
 .giallo {
   background: #1e1e1e;
-  padding: 1em 0;
+  padding: 1em;
+  border: 1px solid #cdcdcd10;
 
   border-radius: 0.5em;
   overflow-x: auto;
@@ -186,6 +200,6 @@ pre::-webkit-scrollbar-thumb:hover {
 
 .giallo-ln {
   user-select: none;
-  padding-left: 1.5em;
+  padding-left: 1em;
   padding-right: 1em;
 }
