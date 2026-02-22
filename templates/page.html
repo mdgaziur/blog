@@ -2,8 +2,14 @@
 
 {% block social_media %}
     {%if page.extra.social_media_banner %}
+        <meta property="og:title" content="{{ page.title }}" />
+        <meta property="twitter:title" content="{{ page.title }}" />
+        <meta property="og:description" content="{{ page.description }}" />
+        <meta property="og:description" content="{{ page.description }}" />
+        <meta property="twitter:image" content="{{ page.permalink ~ page.extra.social_media_banner }}" />
         <meta property="og:image" content="{{ page.permalink ~ page.extra.social_media_banner }}" />
     {% else %}
+        <meta property="twitter:image" content="{{ get_url(path="images/base_banner.png") }}" />
         <meta property="og:image" content="{{ get_url(path="images/base_banner.png") }}" />
     {% endif %}
 {% endblock social_media %}
