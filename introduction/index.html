@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    
+        <meta property="twitter:image" content="https://mdgaziur.github.io/blog/images/base_banner.png" />
+        <meta property="og:image" content="https://mdgaziur.github.io/blog/images/base_banner.png" />
+    
+
+    <title>Introduction | mdgaziur001/blog</title>
+
+    <link rel="stylesheet" href="https://mdgaziur.github.io/blog/main.css" />
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+    <!-- JetBrains Mono font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+    <!-- KaTeX Setup -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.css" integrity="sha384-Wsr4Nh3yrvMf2KCebJchRJoVo1gTU6kcP05uRSh5NV3sj9+a8IomuJoQzf3sMq4T" crossorigin="anonymous">
+
+    <!-- The loading of KaTeX is deferred to speed up page rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.js" integrity="sha384-+W9OcrYK2/bD7BmUAk+xeFAyKp0QjyRQUCxeU31dfyTt/FrPsUgaBTLLkVf33qWt" crossorigin="anonymous"></script>
+
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/contrib/auto-render.min.js" integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <div class="main-container">
+        <nav class="main-nav">
+            <h1>
+                <a style="color: white;" href="/">mdgaziur001</a>
+                /
+                <a style="color: white;" href="/blog">blog</a>
+            </h1>
+            <p>My ramblings about tech, life and other stuff.</p>
+        </nav>
+        
+<main class="post-container">
+    <article class="post">
+        <header>
+            <h1>Introduction</h1>
+            <p>1 minute reading time</p>
+            <p>Posted at: November 15, 2022 • 10:36 AM</p>
+        </header>
+        <div class="post-content">
+            <p>I'm MD Gaziur Rahman Noor. I'm a student and a hobbyist programmer. I'm from Bangladesh.
+I've started coding in 2017. However, I wasn't so serious about it. During the COVID lockdown, I started to use the free time to do programming. I started with learning Python. I made some personal projects such as a micro blog, an url shortener and COVID-19 statistics tracker.</p>
+<p>A few months later, I moved to Javascript. I was trying to make an online judge back then. After going to issues that are caused by the weirdness of Javascript, I decided to try Typescript. I learned stuff like MongoDB, GraphQL and Docker.</p>
+<p>Fast forward to 2021, I started learning Rust. I immediately fell in love with that langauge. The type system and the way compiler prevented undefined behaviours was absolutely fascinating to me. I became more and more interested to low level stuff like compilers and operating systems.</p>
+<p>I authored <a rel="noopener external" target="_blank" href="https://github.com/mdgaziur/findex">Findex</a> and <a rel="noopener external" target="_blank" href="https://github.com/mdgaziur/yal">YAL</a>. I have planned more projects to work on in near future.</p>
+<p>That's it, a short description of myself :3</p>
+
+        </div>
+    </article>
+</main>
+
+<div id="disqus_thread"></div>
+<script>
+    let post_imgs = document.querySelectorAll(".post-content > p > img");
+    for (let post_img of post_imgs) {
+        post_img.addEventListener("click", (event) => {
+            let img_src = post_img.getAttribute("src");
+            let img_alt = post_img.getAttribute("alt");
+            let modal = document.createElement("div");
+            modal.classList.add("modal");
+            modal.innerHTML = `
+                <div class="img-modal-content">
+                    <div class="img-modal-image">
+                        <img src="${img_src}" alt="${img_alt}">
+                    </div>
+                    <button class="close">&times;</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = "block";
+            let close_btn = modal.querySelector(".close");
+
+            modal.onclick = (event) => {
+                if (event.target.className === "img-modal-content") {
+                    modal.style.display = "none";
+                    document.body.removeChild(modal);
+                }
+            };
+
+            close_btn.addEventListener("click", () => {
+                modal.style.display = "none";
+                document.body.removeChild(modal);
+            });
+        });
+    }
+</script>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT
+     *  THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR
+     *  PLATFORM OR CMS.
+     *
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT:
+     *  https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    /*
+    var disqus_config = function () {
+        // Replace PAGE_URL with your page's canonical URL variable
+        this.page.url = PAGE_URL;
+
+        // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+        this.page.identifier = PAGE_IDENTIFIER;
+    };
+    */
+
+    (function() {  // REQUIRED CONFIGURATION VARIABLE: EDIT THE SHORTNAME BELOW
+        var d = document, s = d.createElement('script');
+
+        // IMPORTANT: Replace EXAMPLE with your forum shortname!
+        s.src = 'https://mdgaziur-github-io-blog.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>
+    Please enable JavaScript to view the
+    <a href="https://disqus.com/?ref_noscript" rel="nofollow">
+        comments powered by Disqus.
+    </a>
+</noscript>
+
+    </div>
+</body>
+</html>

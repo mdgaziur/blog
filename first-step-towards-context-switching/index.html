@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    
+        <meta property="twitter:image" content="https://mdgaziur.github.io/blog/images/base_banner.png" />
+        <meta property="og:image" content="https://mdgaziur.github.io/blog/images/base_banner.png" />
+    
+
+    <title>Taking the first step towards adding multitasking in my Kernel | mdgaziur001/blog</title>
+
+    <link rel="stylesheet" href="https://mdgaziur.github.io/blog/main.css" />
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+    <!-- JetBrains Mono font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+    <!-- KaTeX Setup -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.css" integrity="sha384-Wsr4Nh3yrvMf2KCebJchRJoVo1gTU6kcP05uRSh5NV3sj9+a8IomuJoQzf3sMq4T" crossorigin="anonymous">
+
+    <!-- The loading of KaTeX is deferred to speed up page rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.js" integrity="sha384-+W9OcrYK2/bD7BmUAk+xeFAyKp0QjyRQUCxeU31dfyTt/FrPsUgaBTLLkVf33qWt" crossorigin="anonymous"></script>
+
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/contrib/auto-render.min.js" integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <div class="main-container">
+        <nav class="main-nav">
+            <h1>
+                <a style="color: white;" href="/">mdgaziur001</a>
+                /
+                <a style="color: white;" href="/blog">blog</a>
+            </h1>
+            <p>My ramblings about tech, life and other stuff.</p>
+        </nav>
+        
+<main class="post-container">
+    <article class="post">
+        <header>
+            <h1>Taking the first step towards adding multitasking in my Kernel</h1>
+            <p>4 minute reading time</p>
+            <p>Posted at: January 25, 2023 •  3:14 PM</p>
+        </header>
+        <div class="post-content">
+            <p>Hi there! I've been working on my own <a rel="noopener external" target="_blank" href="https://github.com/mdgaziur/ferricoxide-os">operating system</a> since last year.
+It currently has paging, virtual file system, ramfs, and it can show stuff by writing pixels into a framebuffer. I've
+always been curious with how Linux, Windows and other operating systems do multitasking. More importantly, how do they switch
+context?</p>
+<h2 id="trying-to-learn-from-osdev-wiki">Trying to learn from OSDev Wiki<a class="zola-anchor" href="#trying-to-learn-from-osdev-wiki" aria-label="Anchor link for: trying-to-learn-from-osdev-wiki">🔗</a></h2>
+<p>In the <a rel="noopener external" target="_blank" href="https://wiki.osdev.org">OSDev Wiki</a>, I found a pretty interesting tutorial on multitasking. It can be found
+<a rel="noopener external" target="_blank" href="https://wiki.osdev.org/Brendan%27s_Multi-tasking_Tutorial">here</a>. I tried to read through it and understand what's
+going on. But, alas! I couldn't understand even 50% of it. I was pretty confused about the implementation of <code>switch_to_task</code>.
+But tbh, it was not the OP's fault. The most interesting thing was <code>Thread Control Block</code>. If we look at the code:</p>
+<pre class="giallo" style="color: #DCD7BA; background-color: #1F1F28;"><code data-lang="asm"><span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 1</span><span style="color: #727169;">;C declaration:</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 2</span><span style="color: #727169;">;   void switch_to_task(thread_control_block *next_thread);</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 3</span><span style="color: #727169;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 4</span><span style="color: #727169;">;WARNING: Caller is expected to disable IRQs before calling, and enable IRQs again after function returns</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 5</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 6</span><span style="color: #7E9CD8;">switch_to_task</span><span style="color: #9CABCA;">:</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 7</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 8</span><span style="color: #727169;">    ;Save previous task&#39;s state</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 9</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">10</span><span style="color: #727169;">    ;Notes:</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">11</span><span style="color: #727169;">    ;  For cdecl; EAX, ECX, and EDX are already saved by the caller and don&#39;t need to be saved again</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">12</span><span style="color: #727169;">    ;  EIP is already saved on the stack by the caller&#39;s &quot;CALL&quot; instruction</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">13</span><span style="color: #727169;">    ;  The task isn&#39;t able to change CR3 so it doesn&#39;t need to be saved</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">14</span><span style="color: #727169;">    ;  Segment registers are constants (while running kernel code) so they don&#39;t need to be saved</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">15</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">16</span><span style="color: #E6C384;">    push</span><span style="color: #FFA066;"> ebx</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">17</span><span style="color: #E6C384;">    push</span><span style="color: #FFA066;"> esi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">18</span><span style="color: #E6C384;">    push</span><span style="color: #FFA066;"> edi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">19</span><span style="color: #E6C384;">    push</span><span style="color: #FFA066;"> ebp</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">20</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">21</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> edi</span><span>,[current_task_TCB]    </span><span style="color: #727169;">;edi = address of the previous task&#39;s &quot;thread control block&quot;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">22</span><span style="color: #E6C384;">    mov</span><span> [</span><span style="color: #FFA066;">edi</span><span>+TCB.</span><span style="color: #FFA066;">ESP</span><span>],</span><span style="color: #FFA066;">esp</span><span style="color: #727169;">         ;Save ESP for previous task&#39;s kernel stack in the thread&#39;s TCB</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">23</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">24</span><span style="color: #727169;">    ;Load next task&#39;s state</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">25</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">26</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> esi</span><span>,[</span><span style="color: #FFA066;">esp</span><span>+(</span><span style="color: #D27E99;">4</span><span>+</span><span style="color: #D27E99;">1</span><span>)*</span><span style="color: #D27E99;">4</span><span>]         </span><span style="color: #727169;">;esi = address of the next task&#39;s &quot;thread control block&quot; (parameter passed on stack)</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">27</span><span style="color: #E6C384;">    mov</span><span> [current_task_TCB],</span><span style="color: #FFA066;">esi</span><span style="color: #727169;">    ;Current task&#39;s TCB is the next task TCB</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">28</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">29</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> esp</span><span>,[</span><span style="color: #FFA066;">esi</span><span>+TCB.</span><span style="color: #FFA066;">ESP</span><span>]         </span><span style="color: #727169;">;Load ESP for next task&#39;s kernel stack from the thread&#39;s TCB</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">30</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> eax</span><span>,[</span><span style="color: #FFA066;">esi</span><span>+TCB.</span><span style="color: #FFA066;">CR3</span><span>]         </span><span style="color: #727169;">;eax = address of page directory for next task</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">31</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> ebx</span><span>,[</span><span style="color: #FFA066;">esi</span><span>+TCB.ESP0]        </span><span style="color: #727169;">;ebx = address for the top of the next task&#39;s kernel stack</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">32</span><span style="color: #E6C384;">    mov</span><span> [TSS.ESP0],</span><span style="color: #FFA066;">ebx</span><span style="color: #727169;">            ;Adjust the ESP0 field in the TSS (used by CPU for for CPL=3 -&gt; CPL=0 privilege level changes)</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">33</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> ecx</span><span>,</span><span style="color: #FFA066;">cr3</span><span style="color: #727169;">                   ;ecx = previous task&#39;s virtual address space</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">34</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">35</span><span style="color: #E6C384;">    cmp</span><span style="color: #FFA066;"> eax</span><span>,</span><span style="color: #FFA066;">ecx</span><span style="color: #727169;">                   ;Does the virtual address space need to being changed?</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">36</span><span style="color: #E6C384;">    je</span><span> .doneVAS                   </span><span style="color: #727169;">; no, virtual address space is the same, so don&#39;t reload it and cause TLB flushes</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">37</span><span style="color: #E6C384;">    mov</span><span style="color: #FFA066;"> cr3</span><span>,</span><span style="color: #FFA066;">eax</span><span style="color: #727169;">                   ; yes, load the next task&#39;s virtual address space</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">38</span><span style="color: #957FB8;">.</span><span style="color: #7E9CD8;">doneVAS</span><span style="color: #9CABCA;">:</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">39</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">40</span><span style="color: #E6C384;">    pop</span><span style="color: #FFA066;"> ebp</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">41</span><span style="color: #E6C384;">    pop</span><span style="color: #FFA066;"> edi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">42</span><span style="color: #E6C384;">    pop</span><span style="color: #FFA066;"> esi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">43</span><span style="color: #E6C384;">    pop</span><span style="color: #FFA066;"> ebx</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">44</span><span> </span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">45</span><span style="color: #E6C384;">    ret</span><span style="color: #727169;">                           ;Load next task&#39;s EIP from its kernel stack</span></span></code></pre>
+<p>It seems to store some registers, and then loads the TCB of previous task into <code>edi</code>. And then loads
+the TCB of next task to esp. And then does some <code>mov</code>'s I don't really understand. There are some stuff like
+<code>kernel stack</code> and <code>virtual address space</code> that aren't really present in the kernel right now. So, I decided to change
+my plan.</p>
+<h2 id="plan-b">Plan B<a class="zola-anchor" href="#plan-b" aria-label="Anchor link for: plan-b">🔗</a></h2>
+<p>I started to go through random repositories of fantastic kernels written by fantastic people to try to grasp how
+they did multitasking. I looked through source code of <a rel="noopener external" target="_blank" href="https://lemonos.org">Lemon OS</a>, <a rel="noopener external" target="_blank" href="https://aero.andypy.dev/aero_kernel/index.html">Aero OS</a>
+and many more. One thing they had in common is that the scheduler would do some stuff and then pass the context information
+to an assembly function. That thing does the actual work of moving and updating all the necessary registers and doing the
+jump.</p>
+<p>But, what about <code>rip</code>? This was a pretty stupid thing done by me tbh. I was trying to find how to update <code>rip</code> directly.
+Like, <code>mov rip, rax</code>. I didn't realize that it was impossible. It was possible to read value by using <code>lea</code>.
+So, I wasted couple weeks thinking about it. Yeah. But then, today I just found I can do it just by pushing a value
+onto stack and running <code>ret</code>. Damn. This easy?</p>
+<p>So now I started to implement a basic function that'll take a struct <code>Context</code> and use the values from there
+to update the registers.</p>
+<pre class="giallo" style="color: #DCD7BA; background-color: #1F1F28;"><code data-lang="rust"><span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 1</span><span style="color: #9CABCA;">#[</span><span>derive</span><span style="color: #9CABCA;">(</span><span style="color: #7AA89F;">Default</span><span style="color: #9CABCA;">,</span><span style="color: #7AA89F;"> Debug</span><span style="color: #9CABCA;">,</span><span style="color: #7AA89F;"> Copy</span><span style="color: #9CABCA;">,</span><span style="color: #7AA89F;"> Clone</span><span style="color: #9CABCA;">)]</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 2</span><span style="color: #9CABCA;">#[</span><span>repr</span><span style="color: #9CABCA;">(</span><span>packed</span><span style="color: #9CABCA;">)]</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 3</span><span style="color: #957FB8;">pub struct</span><span style="color: #7AA89F;"> Context</span><span style="color: #9CABCA;"> {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 4</span><span style="color: #957FB8;">    pub</span><span> rbx</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 5</span><span style="color: #957FB8;">    pub</span><span> rbp</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 6</span><span style="color: #957FB8;">    pub</span><span> r12</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 7</span><span style="color: #957FB8;">    pub</span><span> r13</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 8</span><span style="color: #957FB8;">    pub</span><span> r14</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 9</span><span style="color: #957FB8;">    pub</span><span> r15</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">10</span><span style="color: #9CABCA;">}</span></span></code></pre>
+<p>Following is the code of the function:</p>
+<pre class="giallo" style="color: #DCD7BA; background-color: #1F1F28;"><code data-lang="rust"><span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 1</span><span style="color: #9CABCA;">#[</span><span>naked</span><span style="color: #9CABCA;">]</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 2</span><span style="color: #957FB8;">pub unsafe extern</span><span style="color: #98BB6C;"> &quot;C&quot;</span><span style="color: #957FB8;"> fn</span><span style="color: #7E9CD8;"> switch_context</span><span style="color: #9CABCA;">(</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 3</span><span>    new_context</span><span style="color: #E6C384;">: &amp;</span><span style="color: #7AA89F;">Context</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 4</span><span>    new_cr3</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> usize</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 5</span><span>    rip</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> usize</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 6</span><span style="color: #9CABCA;">) {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 7</span><span style="color: #E46876;">    asm!</span><span style="color: #9CABCA;">(</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 8</span><span style="color: #98BB6C;">        &quot;\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 9</span><span style="color: #98BB6C;">        mov rax, rsp</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">10</span><span style="color: #98BB6C;">        mov rsp, rdi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">11</span><span style="color: #98BB6C;">        pop rbx</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">12</span><span style="color: #98BB6C;">        pop rbp</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">13</span><span style="color: #98BB6C;">        pop r12</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">14</span><span style="color: #98BB6C;">        pop r13</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">15</span><span style="color: #98BB6C;">        pop r14</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">16</span><span style="color: #98BB6C;">        pop r15</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">17</span><span style="color: #98BB6C;">        mov rsp, rax</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">18</span><span style="color: #98BB6C;">        mov cr3, rsi</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">19</span><span style="color: #98BB6C;">        push rdx</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">20</span><span style="color: #98BB6C;">        ret</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">21</span><span style="color: #98BB6C;">    &quot;</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">22</span><span style="color: #7E9CD8;">        options</span><span style="color: #9CABCA;">(</span><span>noreturn</span><span style="color: #9CABCA;">)</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">23</span><span style="color: #9CABCA;">    )</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">24</span><span style="color: #9CABCA;">}</span></span></code></pre>
+<p>This is a naked function(doesn't have the prologue and epilogue like normal functions do) that takes the context,
+cr3(for setting the address space of switched task) and the value for <code>rip</code>. The code basically backs up the stack first,
+then sets the pointer to <code>Context</code> as stack pointer. Then we pop the values from it with the same order we declared
+the register values in <code>Context</code>. The ordering is very important here. Otherwise, register will get wrong value. Then
+it restores original stack, updates cr3. After that, it basically pushes <code>rdx</code>. Why <code>rdx</code>? Well, the "C" calling convention
+requires that function arguments are put in following order: <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, etc. That means, <code>new_context</code>
+is stored in <code>rdi</code>, <code>new_cr3</code> is stored <code>rsi</code> and <code>rip</code> is stored in <code>rdx</code>. After that, we run the <code>ret</code> instruction.</p>
+<h2 id="testing-the-thing">Testing the thing<a class="zola-anchor" href="#testing-the-thing" aria-label="Anchor link for: testing-the-thing">🔗</a></h2>
+<p>Let's make a dummy function and call it through this. First, the dummy function:</p>
+<pre class="giallo" style="color: #DCD7BA; background-color: #1F1F28;"><code data-lang="rust"><span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 1</span><span style="color: #957FB8;">fn</span><span style="color: #7E9CD8;"> test_func</span><span style="color: #9CABCA;">() {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 2</span><span style="color: #957FB8;">    let</span><span> rbx</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 3</span><span style="color: #957FB8;">    let</span><span> rbp</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 4</span><span style="color: #957FB8;">    let</span><span> r12</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 5</span><span style="color: #957FB8;">    let</span><span> r13</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 6</span><span style="color: #957FB8;">    let</span><span> r14</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 7</span><span style="color: #957FB8;">    let</span><span> r15</span><span style="color: #E6C384;">:</span><span style="color: #7AA89F;"> u64</span><span style="color: #9CABCA;">;</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 8</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 9</span><span style="color: #957FB8;">    unsafe</span><span style="color: #9CABCA;"> {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">10</span><span style="color: #E46876;">        asm!</span><span style="color: #9CABCA;">(</span><span style="color: #98BB6C;">&quot;\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">11</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, rbx</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">12</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, rbp</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">13</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, r12</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">14</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, r13</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">15</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, r14</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">16</span><span style="color: #98BB6C;">            mov </span><span style="color: #9CABCA;">{}</span><span style="color: #98BB6C;">, r15</span><span style="color: #7FB4CA;">\n</span><span style="color: #98BB6C;">\</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">17</span><span style="color: #98BB6C;">        &quot;</span><span style="color: #9CABCA;">,</span><span style="color: #7E9CD8;"> out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> rbx</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">18</span><span style="color: #7E9CD8;">            out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> rbp</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">19</span><span style="color: #7E9CD8;">            out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> r12</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">20</span><span style="color: #7E9CD8;">            out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> r13</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">21</span><span style="color: #7E9CD8;">            out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> r14</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">22</span><span style="color: #7E9CD8;">            out</span><span style="color: #9CABCA;">(</span><span>reg</span><span style="color: #9CABCA;">)</span><span> r15</span><span style="color: #9CABCA;">);</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">23</span><span style="color: #9CABCA;">    }</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">24</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">25</span><span style="color: #E46876;">    info!</span><span style="color: #9CABCA;">(</span><span style="color: #98BB6C;">&quot;Hello from test func!&quot;</span><span style="color: #9CABCA;">);</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">26</span><span style="color: #E46876;">    info!</span><span style="color: #9CABCA;">(</span><span style="color: #98BB6C;">&quot;Registers: &quot;</span><span style="color: #9CABCA;">);</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">27</span><span style="color: #E46876;">    info!</span><span style="color: #9CABCA;">(</span><span style="color: #98BB6C;">&quot;rbx = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">, rbp = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">, r12 = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">, r13 = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">, r14 = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">, r15 = 0x</span><span style="color: #9CABCA;">{</span><span style="color: #98BB6C;">:x</span><span style="color: #9CABCA;">}</span><span style="color: #98BB6C;">&quot;</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">28</span><span>        rbx</span><span style="color: #9CABCA;">,</span><span> rbp</span><span style="color: #9CABCA;">,</span><span> r12</span><span style="color: #9CABCA;">,</span><span> r13</span><span style="color: #9CABCA;">,</span><span> r14</span><span style="color: #9CABCA;">,</span><span> r15</span><span style="color: #9CABCA;">);</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">29</span><span style="color: #9CABCA;">}</span></span></code></pre>
+<p>The function basically reads all the registers updated by the context switch function and displays the values.
+Let's call <code>switch_context</code> with some values:</p>
+<pre class="giallo" style="color: #DCD7BA; background-color: #1F1F28;"><code data-lang="rust"><span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 1</span><span style="color: #957FB8;">unsafe</span><span style="color: #9CABCA;"> {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 2</span><span style="color: #7E9CD8;">    switch_context</span><span style="color: #9CABCA;">(</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 3</span><span style="color: #E6C384;">        &amp;</span><span style="color: #7AA89F;">Context</span><span style="color: #9CABCA;"> {</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 4</span><span>            rbp</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xcafe</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 5</span><span>            rbx</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xbabe</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 6</span><span>            r12</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xdeadbeef</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 7</span><span>            r13</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xfeedbed</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 8</span><span>            r14</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xfacefeed</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;"> 9</span><span>            r15</span><span style="color: #E6C384;">:</span><span style="color: #D27E99;"> 0xfacebace</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">10</span><span style="color: #9CABCA;">        },</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">11</span><span style="color: #E6C384;">        Cr3</span><span style="color: #9CABCA;">::</span><span style="color: #7E9CD8;">read</span><span style="color: #9CABCA;">()</span><span style="color: #E6C384;">.</span><span style="color: #D27E99;">0</span><span style="color: #9CABCA;">.</span><span style="color: #7E9CD8;">start_address</span><span style="color: #9CABCA;">()</span><span style="color: #E6C384;">.</span><span style="color: #7E9CD8;">as_u64</span><span style="color: #9CABCA;">()</span><span style="color: #957FB8;"> as</span><span style="color: #7AA89F;"> usize</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">12</span><span>        test_func</span><span style="color: #957FB8;"> as</span><span style="color: #E6C384;"> *</span><span style="color: #957FB8;">const fn</span><span style="color: #9CABCA;">()</span><span style="color: #957FB8;"> as</span><span style="color: #7AA89F;"> usize</span><span style="color: #9CABCA;">,</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">13</span><span style="color: #9CABCA;">    );</span></span>
+<span class="giallo-l"><span aria-hidden="true" class="giallo-ln" style="color: #54546D;">14</span><span style="color: #9CABCA;">}</span></span></code></pre>
+<p>We are basically setting some interesting values to the registers, setting cr3 to what we are using currently as we can't
+set up new page tables now, and then passing the pointer to <code>test_func</code>. The <code>switch_context</code> function doesn't crash and switches
+task successfully. Here's the output:</p>
+<p><img src="https://mdgaziur.github.io/blog/first-step-towards-context-switching/first_step_towards_context_switching_img1.png" alt="first_step_towards_context_switching_img1.png" /></p>
+<h2 id="conclusion">Conclusion<a class="zola-anchor" href="#conclusion" aria-label="Anchor link for: conclusion">🔗</a></h2>
+<p>I've learned some stuff about switching context and tried to implement them. Tbh, current one isn't really efficient.
+It doesn't really store the context of previous task somewhere, and it's currently a fancy unsafe function caller.
+I've plans to make it so that it actually works properly in real multitasking scenario. I'm going to have to write a
+scheduler and make it schedule tasks. It can be done through <code>PIC</code>. But that's for next time. Currently, my college
+class is going to begin soon, and I'm going to have to study to get into a good university. Till then, stay safe and keep grinding.</p>
+
+        </div>
+    </article>
+</main>
+
+<div id="disqus_thread"></div>
+<script>
+    let post_imgs = document.querySelectorAll(".post-content > p > img");
+    for (let post_img of post_imgs) {
+        post_img.addEventListener("click", (event) => {
+            let img_src = post_img.getAttribute("src");
+            let img_alt = post_img.getAttribute("alt");
+            let modal = document.createElement("div");
+            modal.classList.add("modal");
+            modal.innerHTML = `
+                <div class="img-modal-content">
+                    <div class="img-modal-image">
+                        <img src="${img_src}" alt="${img_alt}">
+                    </div>
+                    <button class="close">&times;</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = "block";
+            let close_btn = modal.querySelector(".close");
+
+            modal.onclick = (event) => {
+                if (event.target.className === "img-modal-content") {
+                    modal.style.display = "none";
+                    document.body.removeChild(modal);
+                }
+            };
+
+            close_btn.addEventListener("click", () => {
+                modal.style.display = "none";
+                document.body.removeChild(modal);
+            });
+        });
+    }
+</script>
+<script>
+    /**
+     *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT
+     *  THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR
+     *  PLATFORM OR CMS.
+     *
+     *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT:
+     *  https://disqus.com/admin/universalcode/#configuration-variables
+     */
+    /*
+    var disqus_config = function () {
+        // Replace PAGE_URL with your page's canonical URL variable
+        this.page.url = PAGE_URL;
+
+        // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+        this.page.identifier = PAGE_IDENTIFIER;
+    };
+    */
+
+    (function() {  // REQUIRED CONFIGURATION VARIABLE: EDIT THE SHORTNAME BELOW
+        var d = document, s = d.createElement('script');
+
+        // IMPORTANT: Replace EXAMPLE with your forum shortname!
+        s.src = 'https://mdgaziur-github-io-blog.disqus.com/embed.js';
+
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>
+    Please enable JavaScript to view the
+    <a href="https://disqus.com/?ref_noscript" rel="nofollow">
+        comments powered by Disqus.
+    </a>
+</noscript>
+
+    </div>
+</body>
+</html>
