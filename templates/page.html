@@ -1,6 +1,14 @@
 {% extends "index.html" %}
 
+{% block social_media %}
+    {%if page.extra.social_media_banner %}
+        <meta property="og:image" content="{{ page.permalink ~ page.extra.social_media_banner }}" />
+    {% else %}
+        <meta property="og:image" content="{{ get_url(path="images/base_banner.png") }}" />
+    {% endif %}
+{% endblock social_media %}
 {% block title %}{{ page.title }} | mdgaziur001/blog{% endblock title %}
+
 {% block content %}
 <main class="post-container">
     <article class="post">
