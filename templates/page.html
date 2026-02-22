@@ -17,6 +17,40 @@
 
 <div id="disqus_thread"></div>
 <script>
+    let post_imgs = document.querySelectorAll(".post-content > p > img");
+    for (let post_img of post_imgs) {
+        post_img.addEventListener("click", (event) => {
+            let img_src = post_img.getAttribute("src");
+            let img_alt = post_img.getAttribute("alt");
+            let modal = document.createElement("div");
+            modal.classList.add("modal");
+            modal.innerHTML = `
+                <div class="img-modal-content">
+                    <div class="img-modal-image">
+                        <img src="${img_src}" alt="${img_alt}">
+                    </div>
+                    <button class="close">&times;</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = "block";
+            let close_btn = modal.querySelector(".close");
+
+            modal.onclick = (event) => {
+                if (event.target.className === "img-modal-content") {
+                    modal.style.display = "none";
+                    document.body.removeChild(modal);
+                }
+            };
+
+            close_btn.addEventListener("click", () => {
+                modal.style.display = "none";
+                document.body.removeChild(modal);
+            });
+        });
+    }
+</script>
+<script>
     /**
      *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT
      *  THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR

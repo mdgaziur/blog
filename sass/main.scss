@@ -17,6 +17,7 @@ body {
   color: var(--text-color);
   display: flex;
   justify-content: center;
+  position: relative;
 }
 
 pre, code {
@@ -115,6 +116,44 @@ header {
 
 .post-title {
   font-weight: 600;
+}
+
+.post-content > p > img {
+  cursor: pointer;
+}
+
+.img-modal-content {
+  position: fixed;
+  z-index: 999;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .img-modal-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+      width: 1024px;
+      max-width: 90%;
+    }
+  }
+
+  .close {
+    position: absolute;
+    top: 2.5%;
+    right: 5%;
+    font-size: 2.5em;
+    background: none;
+    color: var(--text-color);
+    border: none;
+    cursor: pointer;
+  }
 }
 
 // code block
