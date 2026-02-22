@@ -1,26 +1,15 @@
 {% macro post_info(post) %}
 <div class="post-info">
-  <h2 class="post-title">{{ post.title }}</h2>
-  <div style="display: flex; gap: 1em;">
-    <span>Reading time: {{ post.reading_time }} minutes</span>
-    <span>Posted at: {{ post.date | date(format="%F") }}</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: .2em; margin-top: .3em;">
-    {% if post.taxonomies.tags %}
-        {% for tag in post.taxonomies.tags %}
-            <a class="tag" href="{{ get_taxonomy_url(kind="tags", name=tag) | safe }}">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" style="fill: rgb(225, 225, 225);">
-                <path d="M13.707 3.293A.996.996 0 0 0 13 3H4a1 1 0 0 0-1 1v9c0 .266.105.52.293.707l8 8a.997.997 0 0 0 1.414 0l9-9a.999.999 0 0 0 0-1.414l-8-8zM12 19.586l-7-7V5h7.586l7 7L12 19.586z"></path>
-                <circle cx="8.496" cy="8.495" r="1.505"></circle>
-              </svg>
-              {{ tag }}
-            </a>
-        {% endfor %}
-    {% endif %}
-  </div>
-  <p>
-    {{ post.description }}
-  </p>
-  <a style="text-decoration: underline" href="{{ post.permalink | safe }}">Read more</a>
+    <h1 class="post-title">{{ post.title }}</h1>
+    <div style="display: flex; gap: 1em; flex-wrap: wrap;">
+        <span>Reading time: {{ post.reading_time }} minutes</span>
+        <p>Posted at: {{ post.date | date(format="%B %e, %Y • %l:%M %p") }}</p>
+    </div>
+    <div>
+        <p>
+            {{ post.description }}
+        </p>
+        <a style="text-decoration: underline" href="{{ post.permalink | safe }}">Read more</a>
+    </div>
 </div>
 {% endmacro page_info %}
