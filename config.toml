@@ -17,6 +17,7 @@ author = "MD Gaziur Rahman Noor"
 external_links_target_blank = true
 bottom_footnotes = true
 github_alerts = true
+insert_anchor_links = "right"
 
 [markdown.highlighting]
 # Whether to do syntax highlighting

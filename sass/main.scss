@@ -96,6 +96,23 @@ header {
   }
 }
 
+.zola-anchor {
+  color: var(--text-color);
+  visibility: hidden;
+}
+
+.post-content {
+  h1, h2, h3, h4, h5, h6 {
+    display: flex;
+    gap: 0.2em;
+  }
+  h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+    .zola-anchor {
+      visibility: visible;
+    }
+  }
+}
+
 .post-title {
   font-weight: 600;
 }
